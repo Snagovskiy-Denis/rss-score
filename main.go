@@ -11,13 +11,16 @@ import (
 	"os/exec"
 	"slices"
 
-	_ "modernc.org/sqlite"
 	"rss-score/api"
 	"rss-score/db"
+	"rss-score/service"
+
+	_ "modernc.org/sqlite"
 )
 
 var (
 	vaultDBEnvName  = "ZETTELKASTEN_DB"
+	vaultCmd        = "pass"
 	apiKeyVaultPath = "dev/rss-score/api-key"
 
 	scoreFlagName = "score"
@@ -25,18 +28,13 @@ var (
 )
 
 func main() {
-	// validate environment
-	dbPathZettelkasten, ok := os.LookupEnv(vaultDBEnvName)
+	// validate environment & secrets
+	dbPathZettelkastenPath, ok := os.LookupEnv(vaultDBEnvName)
 	checkTrue(ok, "Missing %s", vaultDBEnvName)
 
-	conn, err := sql.Open("sqlite", dbPathZettelkasten)
-	checkNoErr(err)
-	defer conn.Close()
-
-	apiKey, err := exec.Command("pass", apiKeyVaultPath).Output()
+	apiKey, err := exec.Command(vaultCmd, apiKeyVaultPath).Output()
 	checkNoErr(err)
 	checkTrue(!slices.Equal(apiKey, []byte{}), "api-key is empty!")
-	api := api.New(apiKey)
 
 	// validate options
 	score := flag.Int(scoreFlagName, 0, "video score")
@@ -48,11 +46,18 @@ func main() {
 		checkTrue(isFlagPassed(name), "%s flag is unset", name)
 	}
 
-	// process
-	article, err := api.FetchMetadata(*videoID)
+	// setup service
+	sqlite, err := sql.Open("sqlite", dbPathZettelkastenPath)
 	checkNoErr(err)
+	defer sqlite.Close()
+	store := db.New(sqlite)
 
-	checkNoErr(db.InsertOrUpdate(conn, article, *score))
+	api := api.New(apiKey)
+
+	svc := service.New(api, store)
+
+	// process
+	checkNoErr(svc.Run(*videoID, *score))
 	log.Println("success!")
 }
 

@@ -6,14 +6,14 @@ import (
 )
 
 type (
-	channelDetails struct {
+	ChannelDetails struct {
 		CustomURL string `json:"customUrl"`
 		Title     string `json:"title"`
 	}
 
 	channelItem struct {
 		ID      string         `json:"id"`
-		Details channelDetails `json:"snippet"`
+		Details ChannelDetails `json:"snippet"`
 	}
 
 	channelResponse struct {
@@ -21,7 +21,7 @@ type (
 	}
 )
 
-func (api *googleAPI) channel(channelID string) (*channelDetails, error) {
+func (api *googleAPI) Channel(channelID string) (*ChannelDetails, error) {
 	body, err := api.get("channels", channelID)
 	if err != nil {
 		return nil, err

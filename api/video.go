@@ -6,7 +6,7 @@ import (
 )
 
 type (
-	videoDetails struct {
+	VideoDetails struct {
 		VideoTitle   string `json:"title"`
 		ChannelTitle string `json:"channelTitle"`
 		ChannelID    string `json:"channelId"`
@@ -15,7 +15,7 @@ type (
 
 	videoItem struct {
 		ID      string       `json:"id"`
-		Details videoDetails `json:"snippet"`
+		Details VideoDetails `json:"snippet"`
 	}
 
 	videoResponse struct {
@@ -23,8 +23,8 @@ type (
 	}
 )
 
-func (api *googleAPI) video(videoID string) (*videoDetails, error) {
-	body, err := api.get("videos", videoID)
+func (api *googleAPI) Video(ID string) (*VideoDetails, error) {
+	body, err := api.get("videos", ID)
 	if err != nil {
 		return nil, err
 	}

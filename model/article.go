@@ -6,4 +6,5 @@ type Article struct {
 	FeedTitle    string
 	ArticleTitle string
 	PubDate      int
+	Score        int
 }

@@ -1,49 +1,22 @@
 package db
 
-import (
-	"database/sql"
-	"rss-score/model"
-)
+import "rss-score/model"
 
-func InsertOrUpdate(db *sql.DB, article *model.Article, score int) error {
-	articleInDB, err := GetArticleScore(db, article.ArticleURL)
-	if err == nil {
-		_, err := db.Exec(
-			`UPDATE rss_scores SET score = ? WHERE feed_url = ? AND article_url = ?`,
-			score, articleInDB.FeedURL, articleInDB.ArticleURL,
-		)
-		return err
-	}
-
-	_, err = db.Exec(
-		`INSERT INTO rss_scores (
-	           feed_url,
-	           feed_title,
-	           article_url,
-	           article_title,
-	           pub_date,
-	           score
-	       )
-	       VALUES (?, ?, ?, ?, ?, ?)`,
-		article.FeedURL,
-		article.FeedTitle,
-		article.ArticleURL,
-		article.ArticleTitle,
-		article.PubDate,
-		score,
-	)
-
-	return err
+type ArticleRepository interface {
+	GetByArticleURL(articleURL string) (*model.Article, error)
+	UpdateScore(articleInDB *model.Article, score int) error
+	Insert(article *model.Article) error
 }
 
-func GetArticleScore(db *sql.DB, articleURL string) (model.Article, error) {
-	row := db.QueryRow(
+func (store Store) GetByArticleURL(articleURL string) (*model.Article, error) {
+	row := store.db.QueryRow(
 		`SELECT
             feed_url,
             feed_title,
             article_url,
             article_title,
-            pub_date
+            pub_date,
+			score
         FROM rss_scores
         WHERE article_url = ?`,
 		articleURL,
@@ -56,6 +29,41 @@ func GetArticleScore(db *sql.DB, articleURL string) (model.Article, error) {
 		&as.ArticleURL,
 		&as.ArticleTitle,
 		&as.PubDate,
+		&as.Score,
 	)
-	return as, err
+
+	return &as, err
+}
+
+func (store Store) UpdateScore(articleInDB *model.Article, score int) error {
+	_, err := store.db.Exec(
+		`UPDATE rss_scores
+		SET score = ?
+		WHERE feed_url = ? AND article_url = ?`,
+		score, articleInDB.FeedURL, articleInDB.ArticleURL,
+	)
+
+	return err
+}
+
+func (store Store) Insert(article *model.Article) error {
+	_, err := store.db.Exec(
+		`INSERT INTO rss_scores (
+	        feed_url,
+	        feed_title,
+	        article_url,
+	        article_title,
+	        pub_date,
+	        score
+	    )
+	    VALUES (?, ?, ?, ?, ?, ?)`,
+		article.FeedURL,
+		article.FeedTitle,
+		article.ArticleURL,
+		article.ArticleTitle,
+		article.PubDate,
+		article.Score,
+	)
+
+	return err
 }

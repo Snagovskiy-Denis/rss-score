@@ -5,12 +5,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"rss-score/model"
 )
 
 type API interface {
-	FetchMetadata(videoID string) (*model.Article, error)
+	Video(ID string) (*VideoDetails, error)
+	Channel(ID string) (*ChannelDetails, error)
 }
 
 type googleAPI struct {
