@@ -14,25 +14,27 @@ type Service interface {
 }
 
 type service struct {
-	api   api.GoogleAPI
+	api   api.YouTubeAPI
 	store db.ArticleRepository
 }
 
-func New(api api.GoogleAPI, store db.ArticleRepository) Service {
+func New(api api.YouTubeAPI, store db.ArticleRepository) Service {
 	return &service{api: api, store: store}
 }
 
-func (s *service) Run(videoID string, score int) error {
+// Run scores given article in the local score database
+func (svc *service) Run(videoID string, score int) error {
 	// Update score if article is presented in the database
 	articleURL := fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoID)
-	articleInDB, err := s.store.GetByArticleURL(articleURL)
+
+	articleInDB, err := svc.store.GetByArticleURL(articleURL)
 	// TODO add transaction and with update lock
 	if err == nil {
-		return s.store.UpdateScore(articleInDB, score)
+		return svc.store.UpdateScore(articleInDB, score)
 	}
 
 	// Fetch metadata
-	video, err := s.api.Video(videoID)
+	video, err := svc.api.Video(videoID)
 	if err != nil {
 		return err
 	}
@@ -52,5 +54,5 @@ func (s *service) Run(videoID string, score int) error {
 	}
 
 	// store
-	return s.store.Upsert(article)
+	return svc.store.Upsert(article)
 }

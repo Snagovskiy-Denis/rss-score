@@ -23,7 +23,7 @@ type (
 	}
 )
 
-func (api *googleAPI) Video(ID string) (*VideoDetails, error) {
+func (api *youTubeAPI) Video(ID string) (*VideoDetails, error) {
 	body, err := api.get("videos", ID)
 	if err != nil {
 		return nil, err

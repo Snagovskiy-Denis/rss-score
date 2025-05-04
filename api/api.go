@@ -4,27 +4,26 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 )
 
-type GoogleAPI interface {
+type YouTubeAPI interface {
 	Video(ID string) (*VideoDetails, error)
 	Channel(ID string) (*ChannelDetails, error)
 }
 
-type googleAPI struct {
+type youTubeAPI struct {
 	apiKey  string
 	baseURL string
 }
 
-func New(apiKey []byte) GoogleAPI {
-	return &googleAPI{
+func New(apiKey string) YouTubeAPI {
+	return &youTubeAPI{
 		baseURL: "https://www.googleapis.com/youtube/v3/%s?id=%s&key=%s&part=snippet",
-		apiKey:  strings.TrimSpace(string(apiKey)),
+		apiKey:  apiKey,
 	}
 }
 
-func (api *googleAPI) get(method string, id string) ([]byte, error) {
+func (api *youTubeAPI) get(method string, id string) ([]byte, error) {
 	URL := fmt.Sprintf(api.baseURL, method, id, api.apiKey)
 
 	response, err := http.Get(URL)

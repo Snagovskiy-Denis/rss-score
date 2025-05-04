@@ -6,10 +6,12 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"slices"
+	"strings"
 
 	"rss-score/api"
 	"rss-score/db"
@@ -32,6 +34,8 @@ func main() {
 	score := flag.Int(scoreFlagName, 0, "video score")
 	videoID := flag.String(idFlagName, "", "expects YouTube video id")
 
+	apiKey := flag.String("api-key", "", "access key for YouTube Data API v3")
+
 	flag.Parse()
 
 	for _, name := range []string{scoreFlagName, idFlagName} {
@@ -44,8 +48,10 @@ func main() {
 	dbPathZettelkastenPath, ok := os.LookupEnv(vaultDBEnvName)
 	checkTrue(ok, "Missing %s", vaultDBEnvName)
 
-	_, err := exec.LookPath(vaultCmd)
-	checkNoErr(err)
+	if *apiKey == "" {
+		_, err := exec.LookPath(vaultCmd)
+		checkNoErr(err)
+	}
 
 	// setup service
 	sqlite, err := sql.Open("sqlite", dbPathZettelkastenPath)
@@ -53,10 +59,26 @@ func main() {
 	defer sqlite.Close()
 	store := db.New(sqlite)
 
-	apiKey, err := exec.Command(vaultCmd, apiKeyVaultPath).Output()
-	checkTrue(!slices.Equal(apiKey, []byte{}), "api-key is empty!")
-	checkNoErr(err)
-	api := api.New(apiKey)
+	if *apiKey == "" {
+		apiKeyEncoded, err := exec.Command(vaultCmd, apiKeyVaultPath).Output()
+		if err != nil {
+			switch e := err.(type) {
+			case *exec.Error:
+				checkNoErr(fmt.Errorf("failed executing %s: %w", vaultCmd, e))
+			case *exec.ExitError:
+				log.Fatalf("%s exit rc = %d", vaultCmd, e.ExitCode())
+			default:
+				panic(err)
+			}
+		}
+		checkTrue(!slices.Equal(apiKeyEncoded, []byte{}), "api-key is empty!")
+		key := strings.TrimSpace(string(apiKeyEncoded))
+		apiKey = &key
+	}
+	if len(*apiKey) < 39 {
+		fmt.Printf("warning: api-key is short with len %d\n", len(*apiKey))
+	}
+	api := api.New(*apiKey)
 
 	svc := service.New(api, store)
 
@@ -77,7 +99,7 @@ func isFlagPassed(name string) bool {
 
 func checkNoErr(err error) {
 	if err != nil {
-		log.Fatal(err.Error())
+		panic(err)
 	}
 }
 

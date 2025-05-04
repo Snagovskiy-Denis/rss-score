@@ -21,7 +21,7 @@ type (
 	}
 )
 
-func (api *googleAPI) Channel(channelID string) (*ChannelDetails, error) {
+func (api *youTubeAPI) Channel(channelID string) (*ChannelDetails, error) {
 	body, err := api.get("channels", channelID)
 	if err != nil {
 		return nil, err
