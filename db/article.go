@@ -6,6 +6,7 @@ type ArticleRepository interface {
 	GetByArticleURL(articleURL string) (*model.Article, error)
 	UpdateScore(articleInDB *model.Article, score int) error
 	Insert(article *model.Article) error
+	Upsert(article *model.Article) error
 }
 
 func (store Store) GetByArticleURL(articleURL string) (*model.Article, error) {
@@ -57,6 +58,30 @@ func (store Store) Insert(article *model.Article) error {
 	        score
 	    )
 	    VALUES (?, ?, ?, ?, ?, ?)`,
+		article.FeedURL,
+		article.FeedTitle,
+		article.ArticleURL,
+		article.ArticleTitle,
+		article.PubDate,
+		article.Score,
+	)
+
+	return err
+}
+
+func (store Store) Upsert(article *model.Article) error {
+	_, err := store.db.Exec(
+		`INSERT INTO rss_scores (
+	        feed_url,
+	        feed_title,
+	        article_url,
+	        article_title,
+	        pub_date,
+	        score
+	    )
+	    VALUES (?, ?, ?, ?, ?, ?)
+		ON CONFLICT(feed_url, article_url)
+		DO UPDATE SET score=excluded.score`,
 		article.FeedURL,
 		article.FeedTitle,
 		article.ArticleURL,

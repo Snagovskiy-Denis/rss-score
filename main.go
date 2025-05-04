@@ -28,14 +28,6 @@ var (
 )
 
 func main() {
-	// validate environment & secrets
-	dbPathZettelkastenPath, ok := os.LookupEnv(vaultDBEnvName)
-	checkTrue(ok, "Missing %s", vaultDBEnvName)
-
-	apiKey, err := exec.Command(vaultCmd, apiKeyVaultPath).Output()
-	checkNoErr(err)
-	checkTrue(!slices.Equal(apiKey, []byte{}), "api-key is empty!")
-
 	// validate options
 	score := flag.Int(scoreFlagName, 0, "video score")
 	videoID := flag.String(idFlagName, "", "expects YouTube video id")
@@ -46,12 +38,24 @@ func main() {
 		checkTrue(isFlagPassed(name), "%s flag is unset", name)
 	}
 
+	checkTrue(len(*videoID) == 11, "expects len of video id to be 11, but got %d", len(*videoID))
+
+	// validate environment
+	dbPathZettelkastenPath, ok := os.LookupEnv(vaultDBEnvName)
+	checkTrue(ok, "Missing %s", vaultDBEnvName)
+
+	_, err := exec.LookPath(vaultCmd)
+	checkNoErr(err)
+
 	// setup service
 	sqlite, err := sql.Open("sqlite", dbPathZettelkastenPath)
 	checkNoErr(err)
 	defer sqlite.Close()
 	store := db.New(sqlite)
 
+	apiKey, err := exec.Command(vaultCmd, apiKeyVaultPath).Output()
+	checkTrue(!slices.Equal(apiKey, []byte{}), "api-key is empty!")
+	checkNoErr(err)
 	api := api.New(apiKey)
 
 	svc := service.New(api, store)

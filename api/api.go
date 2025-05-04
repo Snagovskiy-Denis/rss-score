@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type API interface {
+type GoogleAPI interface {
 	Video(ID string) (*VideoDetails, error)
 	Channel(ID string) (*ChannelDetails, error)
 }
@@ -17,7 +17,7 @@ type googleAPI struct {
 	baseURL string
 }
 
-func New(apiKey []byte) API {
+func New(apiKey []byte) GoogleAPI {
 	return &googleAPI{
 		baseURL: "https://www.googleapis.com/youtube/v3/%s?id=%s&key=%s&part=snippet",
 		apiKey:  strings.TrimSpace(string(apiKey)),
